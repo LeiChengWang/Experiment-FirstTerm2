@@ -1,0 +1,36 @@
+//添加记录模式菜单
+enum add_record_modei_menu
+{
+    add_one=1,      //添加一条记录
+    add_two,        //添加多条记录
+    add_from_file   //从文件添加记录
+}add_record_model_menu;
+
+
+
+/*---------------------------全局变量、指针start-------------------*/
+
+int all_temp;  //用于记录实时选择的各种菜单值
+int sum_record;   //表单的数量
+int sum_item;     //仓库物品的数量
+material* base_head;    //材料库表单记录的头指针
+material* ku_head;    //仓库物品的头指针
+
+
+
+//第一个子菜单
+enum first_menu
+{
+    continue_to_add_one=1,     //继续添加单条记录
+    continue_to_add_two,       //继续添加多条记录
+    first_exit_to_main         //返回主菜单
+}first_menu_switch;
+
+
+
+//显示记录模式菜单
+enum show_record_mode_menu
+{
+    record_List=1,   //显示表单记录
+    cangku_Item      //显示仓库物品清单
+}show_record_mode_menu;
