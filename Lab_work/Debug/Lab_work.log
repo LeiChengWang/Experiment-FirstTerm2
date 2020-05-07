@@ -1,3 +1,3 @@
 ﻿  main.cpp
-M:\C++\Lab_work\Lab_work\main.cpp(706): warning C4715: “Creat_ku”: 不是所有的控件路径都返回值
+M:\C++\Lab_work\Lab_work\main.cpp(876): warning C4715: “Creat_ku”: 不是所有的控件路径都返回值
   Lab_work.vcxproj -> M:\C++\Lab_work\Debug\Lab_work.exe

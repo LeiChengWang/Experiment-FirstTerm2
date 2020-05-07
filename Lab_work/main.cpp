@@ -114,6 +114,8 @@ enum material_menu
 	in_out_way,      //出入库方式
 	record_data,     //记录的日期
 	note,           //备注
+	num,             //数量
+	all              //全部属性
 }sec_sub,forth_sub;
 
 
@@ -153,6 +155,7 @@ int Show_record_mode_menu();     //显示记录模式菜单
 
 //功能函数声明
 
+void Delay(int i);        //延时函数
 
 
 //库相关的函数
@@ -172,6 +175,10 @@ void Join_record(struct material* now_record, struct material* sec_head);       
 
 int Add_one_record(int mode);       //添加单条记录到表单中和仓库中   返回值判断单条记录输入是否结束  0-结束 1-添加完成
 void Add_many_record();      //添加多条记录到表单和仓库中
+
+
+void Show_related_record(enum material_menu link);   //显示相关的表单记录
+void Show_Cangku_Item();    //显示仓库物品清单
 
 
 /*---------------------------全局变量、指针start-------------------*/
@@ -268,12 +275,41 @@ int main()
 					//选择显示表单记录的属性
 					all_temp = Material_menu();
 					sec_sub = (material_menu)all_temp;
+					//显示单价
+					if (sec_sub == unit_price)
+					{
+						Show_related_record(sec_sub);
+					}
+					//显示数量
+					else if (sec_sub == num)
+					{
+						Show_related_record(sec_sub);
+					}
+					//显示保管人
+					else if (sec_sub == person)
+					{
+						Show_related_record(sec_sub);
+					}
+					//显示备注
+					else if (sec_sub == note)
+					{
+						Show_related_record(sec_sub);
+					}
+					//显示全部的记录
+					else if (sec_sub == all)
+					{
+						Show_related_record(sec_sub);
+					}
+
+					
 				}
 
 
 				//仓库清单的相关显示
 				else if (show_record_mode_menu == cangku_Item)
 				{
+					//显示仓库的全部物品清单
+					Show_Cangku_Item();
 
 				}
 
@@ -546,7 +582,7 @@ int Show_record_mode_menu()
 {
 	cout << "1.显示表单记录" << endl;
 	cout << "2.显示仓库清单" << endl;
-	cout << "请输入要显示记录的类型：";
+	cout << "请输入要显示记录的类型：" << endl;
 	int temp;
 	cin >> temp;
 	system("cls");
@@ -585,45 +621,33 @@ int Forth_menu()
 }
 
 
-//显示材料属性菜单(表单和仓库)    //返回值是选择的菜单值
-int Material_menu(int mode)
+//显示材料属性菜单(表单)    //返回值是选择的菜单值
+int Material_menu()
 {
 	int temp;
-	if (mode == 1)
-	{
+
 		cout << "/*---------表单记录材料的属性菜单------------*/" << endl;
-		cout << "1.出/入库" << endl;
-		cout << "2.单价" << endl;
-		cout << "3.日期" << endl;
-		cout << "4.保管人" << endl;
-		cout << "5." << endl;
+		cout << "1.单价" << endl;
+		cout << "2.数量" << endl;
+		cout << "3.保管人" << endl;
+		cout << "4.备注" << endl;
+		cout << "5.全部显示" << endl;
 		cout << "请输入想要选择的材料的属性:" << endl;
 		cin >> temp;
 		switch (temp)
 		{
 			case 1:
-				temp = 5; break;
-			case 2:
-				temp = 1; break;
-			case 3:
-				temp = 2; break;
-			case 4:
 				temp = 3; break;
-			case 5:
-				temp = 6; break;
-			case 6:
+			case 2:
+				temp = 8; break;
+			case 3:
 				temp = 4; break;
-		}
-	}
-	else if (mode == 2)
-	{
-		cout << "/*---------仓库物品的属性菜单------------*/" << endl;		
-		cout << "1.编号" << endl;
-		cout << "2.名称" << endl;
-		cout << "请输入想要选择的仓库物品的属性:" << endl;
+			case 4:
+				temp = 7; break;
+			case 5:
+				temp = 9; break;
 		
-		cin >> temp;
-	}
+		}
 	system("cls");
 	return temp;
 }
@@ -711,7 +735,8 @@ struct material* Creat_ku()
 		//手动输入初始化表单
 		else if (Base_init == handwrite)
 		{
-			
+			bool error=0;  //显示当前表单是否有错误
+
 			cout << "请输入表单记录：" << endl;
 			cout << "出/入库|编号|名称|单价|出/入库数|出/入库时间【年.月.日】|保管人|备注"<<endl;
 			cout << "**输入ok结束表单记录的添加**"<<endl;
@@ -726,31 +751,123 @@ struct material* Creat_ku()
 					system("cls");
 					break;
 				}
-					
-				//入库记录
-				if (strcmp(p1->in_out, "入库") == 0)
-				{
-					cin >> p1->seri_number >> p1->name >> p1->unit_price >> p1->in_num >> p1->in_time.year >> p1->in_time.month >> p1->in_time.day >> p1->person >> p1->note;
-				}
-				//出库记录
-				else
-				{
-					cin >> p1->seri_number >> p1->name >> p1->unit_price >> p1->out_num >> p1->out_time.year >> p1->out_time.month >> p1->out_time.day >> p1->person >> p1->note;
-				}									
-				n++;
-				sum_record++;
-				if (n == 1)
-				{
-					head = p1;
-				}
-				else
-				{
-					p2->next = p1;
-				}
-				p2 = p1;
+				
+				
+
+
+				
+
+			
+
+					//入库记录
+					if (strcmp(p1->in_out, "入库") == 0)
+					{
+						cin >> p1->seri_number >> p1->name >> p1->unit_price >> p1->in_num >> p1->in_time.year >> p1->in_time.month >> p1->in_time.day >> p1->person >> p1->note;
+					}
+					//出库记录
+					else
+					{
+						cin >> p1->seri_number >> p1->name >> p1->unit_price >> p1->out_num >> p1->out_time.year >> p1->out_time.month >> p1->out_time.day >> p1->person >> p1->note;
+					}
+
+
+					//检测表单数据的有效性
+					if (strcmp(p1->in_out, "入库") != 0 && strcmp(p1->in_out, "出库") != 0)
+					{
+						cout << "Error::	**未标明出入库方式**  该条表单记录添加无效！！！" << endl;
+						cout << "请继续输入有效表单记录 或 输入ok结束" << endl;
+						error = 1;
+					}
+					else if (strcmp(p1->in_out, "入库") == 0)
+					{
+						if (p1->in_time.year < 0
+							|| p1->in_time.month < 0
+							|| p1->in_time.month>12
+							|| p1->in_time.day < 1
+							|| p1->in_time.day>31)
+						{
+							cout << "Error::	*日期格式有误**  该条表单记录添加无效！！！" << endl;
+							cout << "请继续输入有效表单记录 或 输入ok结束" << endl;
+							error = 1;
+						}
+
+						if (p1->in_num < 0)
+						{
+							cout << "Error::	*材料的数量不能为负值**  该条表单记录添加无效！！！" << endl;
+							cout << "请继续输入有效表单记录 或 输入ok结束" << endl;
+							error = 1;
+						}
+
+
+						if (p1->unit_price < 0)
+						{
+							cout << "Error::	*材料的单价不能为负值**  该条表单记录添加无效！！！" << endl;
+							cout << "请继续输入有效表单记录 或 输入ok结束" << endl;
+							error = 1;
+						}
+
+
+					}
+					else if (strcmp(p1->in_out, "出库") == 0)
+					{
+						if (p1->out_time.year < 0
+							|| p1->out_time.month < 0
+							|| p1->out_time.month>12
+							|| p1->out_time.day < 1
+							|| p1->out_time.day>31)
+						{
+							cout << "Error::	*日期格式有误**  该条表单记录添加无效！！！" << endl;
+							cout << "请继续输入有效表单记录 或 输入ok结束" << endl;
+							error = 1;
+						}
+
+						if (p1->out_num < 0)
+						{
+							cout << "Error::	*材料的数量不能为负值**  该条表单记录添加无效！！！" << endl;
+							cout << "请继续输入有效表单记录 或 输入ok结束" << endl;
+							error = 1;
+						}
+
+
+						if (p1->unit_price < 0)
+						{
+							cout << "Error::	*材料的单价不能为负值**  该条表单记录添加无效！！！" << endl;
+							cout << "请继续输入有效表单记录 或 输入ok结束" << endl;
+							error = 1;
+						}
+
+					}
+
+
+					//如果数据有错误，输出提示信息
+					if (error == 1)
+					{
+						Delay(2000);
+						
+					}
+
+
+					//将该记录存储到表单中
+					if (error == 0)
+					{
+						n++;
+						sum_record++;
+						if (n == 1)
+						{
+							head->next = p1;
+						}
+						else
+						{
+							p2->next = p1;
+						}
+						p2 = p1;
+					}
+				error = 0;
 			}
 			if (sum_record != 0)
 				p2->next = NULL;
+
+			
 			return head;
 		}
 	}
@@ -825,12 +942,12 @@ void Handout_ku_init(struct material* head, struct material* sec_head)
 
 	for (int i = 0; i < sum_record; i++)
 	{
-		
+		record_head = record_head->next;   //下一个的表单记录
 
 		//将该表单记录的内容放入仓库物品中
 		Join_record(record_head,sec_head);
 
-		record_head = record_head->next;   //下一个的表单记录
+		
 	}
 }
 
@@ -869,10 +986,40 @@ void Join_record(struct material* now_record, struct material* sec_head)
 			{
 				cangku_head->store_num += now_record->in_num;
 			}
-			//物品进行出库
+
+			//物品进行出库  **需要考虑该物品的数量是否够出库的
 			else
 			{
-				cangku_head->store_num -= now_record->out_num;
+				//如果仓库中该物品不够的话
+				if (cangku_head->store_num < now_record->out_num)
+				{
+					cout << "Error::该条表单记录在更新到仓库时出错" << endl;
+					cout << "仓库中" << cangku_head->name << "不够出库" << "   ";
+					cout << "仓库中" << cangku_head->name <<"剩余数量: "<< cangku_head->store_num << endl;
+					cout << "请选择 作废该记录(1)-或-减少出库数(2)" << endl;
+					int temp;
+					cin >> temp;
+					
+					//作废该记录
+					if (temp == 1)
+					{
+						now_record->out_num = 0;
+						cout << "记录已作废!!!";
+						Delay(1500);
+						system("cls");
+					}
+					//重新输入出库数
+					if (temp == 2)
+					{
+						cin >> now_record->out_num;
+						cangku_head->store_num -= now_record->out_num;
+						cout << "更改后的表单记录添加完成!!!" << endl;
+						Delay(1500);
+						system("cls");
+					}				
+				}
+				else
+					cangku_head->store_num -= now_record->out_num;
 			}
 
 			flag = 1;
@@ -902,10 +1049,44 @@ void Join_record(struct material* now_record, struct material* sec_head)
 		{
 			p0->store_num = now_record->in_num;
 		}
-		//物品进行出库
-		else
+
+		//物品进行出库--不可能
+		else if (strcmp(now_record->in_out, "出库") == 0)
 		{
-			p0->store_num = -now_record->out_num;
+			cout << "Error::该条表单记录在更新到仓库时出错" << endl;
+			cout << "仓库中没有" << now_record->name << "这一物品" << endl;
+			cout << "请选择 作废该记录(1)或更改该条记录(2)" << endl;
+
+			int temp;
+			cin >> temp;
+
+			//作废该记录
+			if (temp == 1)
+			{
+				now_record->out_num = 0;
+				cout << "记录已作废!!!";
+				Delay(1500);
+				system("cls");
+			}
+			//重新输入出库数
+			if (temp == 2)
+			{
+				
+				cin >> now_record->in_out;
+				//入库记录
+				if (strcmp(now_record->in_out, "入库") == 0)
+				{
+					cin >> now_record->seri_number >> now_record->name >> now_record->unit_price 
+						>> now_record->in_num >> now_record->in_time.year >> now_record->in_time.month 
+						>> now_record->in_time.day>> now_record->person >> now_record->note;
+					p0->store_num = now_record->in_num;
+				}
+				
+
+				cout << "更改后的表单记录添加完成!!!" << endl;
+				Delay(1500);
+				system("cls");
+			}
 		}
 
 		cangku_head->next = p0;
@@ -920,6 +1101,7 @@ int Add_one_record(int mode)
 {
 	if (mode == 1)
 	{
+		int error = 0;
 		struct material* new_one;
 		new_one = (struct material*)malloc(sizeof(material));
 		cin >> new_one->in_out;
@@ -935,23 +1117,98 @@ int Add_one_record(int mode)
 			cin >> new_one->seri_number >> new_one->name >> new_one->unit_price >> new_one->out_num >> new_one->out_time.year >> new_one->out_time.month >> new_one->out_time.day >> new_one->person >> new_one->note;
 		}
 
-		//将该记录添加到表单中
-		Join_to_record_List(new_one, base_head);
+		//记录格式检查
+		if (strcmp(new_one->in_out, "入库") != 0 && strcmp(new_one->in_out, "出库") != 0)
+		{
+			cout << "Error::	**未标明出入库方式**  该条表单记录添加无效！！！" << endl;
+			error = 1;
+		}
+		else if (strcmp(new_one->in_out, "入库") == 0)
+		{
+			if (new_one->in_time.year < 0
+				|| new_one->in_time.month < 0
+				|| new_one->in_time.month>12
+				|| new_one->in_time.day < 1
+				|| new_one->in_time.day>31)
+			{
+				cout << "Error::	*日期格式有误**  该条表单记录添加无效！！！" << endl;
+				error = 1;
+			}
 
-		//将该记录更新到仓库中
-		Join_record(new_one, ku_head);
+			if (new_one->in_num < 0)
+			{
+				cout << "Error::	*材料的数量不能为负值**  该条表单记录添加无效！！！" << endl;
+				error = 1;
+			}
+
+
+			if (new_one->unit_price < 0)
+			{
+				cout << "Error::	*材料的单价不能为负值**  该条表单记录添加无效！！！" << endl;
+				error = 1;
+			}
+
+
+		}
+		else if (strcmp(new_one->in_out, "出库") == 0)
+		{
+			if (new_one->out_time.year < 0
+				|| new_one->out_time.month < 0
+				|| new_one->out_time.month>12
+				|| new_one->out_time.day < 1
+				|| new_one->out_time.day>31)
+			{
+				cout << "Error::	*日期格式有误**  该条表单记录添加无效！！！" << endl;
+				error = 1;
+			}
+
+			if (new_one->out_num < 0)
+			{
+				cout << "Error::	*材料的数量不能为负值**  该条表单记录添加无效！！！" << endl;
+				error = 1;
+			}
+
+
+			if (new_one->unit_price < 0)
+			{
+				cout << "Error::	*材料的单价不能为负值**  该条表单记录添加无效！！！" << endl;
+				error = 1;
+			}
+
+		}
+
+
+		//如果数据有错误，输出提示信息
+		if (error == 1)
+		{
+			Delay(3500);
+			system("cls");
+		}
 
 		
-		cout << "单条记录添加完成！！！";
-		Sleep(1500);
-		system("cls");
+
+		if (error == 0)
+		{
+			//将该记录添加到表单中
+			Join_to_record_List(new_one, base_head);
+
+			//将该记录更新到仓库中
+			Join_record(new_one, ku_head);
+
+			cout << "单条记录添加完成！！！";
+			Sleep(1500);
+			system("cls");
+		}
+		
 		
 		return 1;
 	}
 	else if (mode == 2)
 	{
+		
 		for (int i=0;;i++)
 		{
+			int error = 0;
 			struct material* new_one;
 			new_one = (struct material*)malloc(sizeof(material));
 			cin >> new_one->in_out;
@@ -970,13 +1227,81 @@ int Add_one_record(int mode)
 			{
 				cin >> new_one->seri_number >> new_one->name >> new_one->unit_price >> new_one->out_num >> new_one->out_time.year >> new_one->out_time.month >> new_one->out_time.day >> new_one->person >> new_one->note;
 			}
+			//记录格式检查
+			if (strcmp(new_one->in_out, "入库") != 0 && strcmp(new_one->in_out, "出库") != 0)
+			{
+				cout << "Error::	**未标明出入库方式**  该条表单记录添加无效！！！" << endl;
+				error = 1;
+			}
+			else if (strcmp(new_one->in_out, "入库") == 0)
+			{
+				if (new_one->in_time.year < 0
+					|| new_one->in_time.month < 0
+					|| new_one->in_time.month>12
+					|| new_one->in_time.day < 1
+					|| new_one->in_time.day>31)
+				{
+					cout << "Error::	*日期格式有误**  该条表单记录添加无效！！！" << endl;
+					error = 1;
+				}
 
-			//将该记录添加到表单中
-			Join_to_record_List(new_one, base_head);
+				if (new_one->in_num < 0)
+				{
+					cout << "Error::	*材料的数量不能为负值**  该条表单记录添加无效！！！" << endl;
+					error = 1;
+				}
 
-			//将该记录更新到仓库中
-			Join_record(new_one, ku_head);
+
+				if (new_one->unit_price < 0)
+				{
+					cout << "Error::	*材料的单价不能为负值**  该条表单记录添加无效！！！" << endl;
+					error = 1;
+				}
+
+
+			}
+			else if (strcmp(new_one->in_out, "出库") == 0)
+			{
+				if (new_one->out_time.year < 0
+					|| new_one->out_time.month < 0
+					|| new_one->out_time.month>12
+					|| new_one->out_time.day < 1
+					|| new_one->out_time.day>31)
+				{
+					cout << "Error::	*日期格式有误**  该条表单记录添加无效！！！" << endl;
+					error = 1;
+				}
+
+				if (new_one->out_num < 0)
+				{
+					cout << "Error::	*材料的数量不能为负值**  该条表单记录添加无效！！！" << endl;
+					error = 1;
+				}
+
+
+				if (new_one->unit_price < 0)
+				{
+					cout << "Error::	*材料的单价不能为负值**  该条表单记录添加无效！！！" << endl;
+					error = 1;
+				}
+
+			}
+			if (error == 1)
+			{
+				cout << endl;
+			}
+			else if (error == 0)
+			{
+				//将该记录添加到表单中
+				Join_to_record_List(new_one, base_head);
+
+				//将该记录更新到仓库中
+				Join_record(new_one, ku_head);
+			}
+			
 		}
+		cout << "多条记录添加完成!!!";
+		Delay(2000);
 		return 2;
 	}
 	return 0;   //加入记录失败！
@@ -998,4 +1323,118 @@ void Add_many_record()
 //延时函数
 void Delay(int i)
 {
+	Sleep(i);
+}
+
+//显示相关的表单记录
+void Show_related_record(enum material_menu link)
+{
+	material* pp = base_head;
+	if (link == unit_price)
+	{
+		
+		for (int i = 0; i < sum_record; i++)
+		{
+			pp = pp->next;
+			cout << pp->seri_number << " " << pp->name << " ";
+			if (strcmp(pp->in_out,"入库") == 0)
+			{
+				cout << pp->in_time.year << " " << pp->in_time.month << " " << pp->in_time.day << " ";
+			}
+			else if (strcmp(pp->in_out, "出库") == 0)
+			{
+				cout << pp->out_time.year<< " " << pp->out_time.month << " " << pp->out_time.day << " ";
+			}
+			cout << pp->in_out << " " << pp->unit_price << endl;
+		}
+
+	}
+	else if (link == num)
+	{
+		
+		for (int i = 0; i < sum_record; i++)
+		{
+			pp = pp->next;
+			cout << pp->seri_number << " " << pp->name << " ";
+			if (strcmp(pp->in_out, "入库") == 0)
+			{
+				cout << pp->in_time.year << " " << pp->in_time.month << " " << pp->in_time.day << " ";
+				cout << pp->in_out << " " << pp->in_num << endl;
+			}
+			else if (strcmp(pp->in_out, "出库") == 0)
+			{
+				cout << pp->out_time.year << " " << pp->out_time.month << " " << pp->out_time.day << " ";
+				cout << pp->in_out << " " << pp->out_num << endl;
+			}
+			
+		}
+	}
+	else if (link == person)
+	{
+		
+		for (int i = 0; i < sum_record; i++)
+		{
+			pp = pp->next;
+			cout << pp->seri_number << " " << pp->name << " ";
+			if (strcmp(pp->in_out, "入库") == 0)
+			{
+				cout << pp->in_time.year << " " << pp->in_time.month << " " << pp->in_time.day << " ";
+			}
+			else if (strcmp(pp->in_out, "出库") == 0)
+			{
+				cout << pp->out_time.year << " " << pp->out_time.month << " " << pp->out_time.day << " ";
+			}
+			cout << pp->in_out << " " << pp->person << endl;
+		}
+	}
+	else if (link == note)
+	{
+		
+		for (int i = 0; i < sum_record; i++)
+		{
+			pp = pp->next;
+			cout << pp->seri_number << " " << pp->name << " ";
+			if (strcmp(pp->in_out, "入库") == 0)
+			{
+				cout << pp->in_time.year << " " << pp->in_time.month << " " << pp->in_time.day << " ";
+			}
+			else if (strcmp(pp->in_out, "出库") == 0)
+			{
+				cout << pp->out_time.year << " " << pp->out_time.month << " " << pp->out_time.day << " ";
+			}
+			cout << pp->in_out << " " << pp->note << endl;
+		}
+	
+	}
+	else if (link == all)
+	{
+
+		for (int i = 0; i < sum_record; i++)
+		{
+			pp = pp->next;
+			cout << pp->seri_number << " " << pp->name << " ";
+			if (strcmp(pp->in_out, "入库") == 0)
+			{
+				cout << pp->in_time.year << " " << pp->in_time.month << " " << pp->in_time.day << " ";
+				cout << pp->in_out << " " << pp->unit_price << " " << pp->in_num << " " << pp->person << " " << pp->note << endl;
+			}
+			else if (strcmp(pp->in_out, "出库") == 0)
+			{
+				cout << pp->out_time.year << " " << pp->out_time.month << " " << pp->out_time.day << " ";
+				cout << pp->in_out << " " << pp->unit_price << " " << pp->out_num << " " << pp->person << " " << pp->note << endl;
+			}
+			
+		}
+	}
+}
+
+//显示仓库物品清单
+void Show_Cangku_Item()
+{
+	material* pp= ku_head;
+	for (int i = 0; i < sum_item; i++)
+	{
+		pp = pp->next;
+		cout << pp->seri_number << " " << pp->name<<" " << pp->store_num<<endl;
+	}
 }
