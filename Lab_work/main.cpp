@@ -4,6 +4,17 @@ using namespace std;
 #include <stdlib.h>
 #include <windows.h>
 
+
+/*------------------------宏定义start--------------------------*/
+
+//用来记录查询模式
+#define First_search     1
+#define Continue_search  2
+#define Clear_list 3
+
+
+
+
 /*------------------------结构体start--------------------------*/
 
 //日期【年、月、日】
@@ -116,7 +127,7 @@ enum material_menu
 	note,           //备注
 	num,             //数量
 	all              //全部属性
-}sec_sub,forth_sub;
+}sec_sub,third_sub,forth_sub;
 
 
 //第五个子菜单
@@ -151,6 +162,9 @@ int material_base_menu();  //显示材料初始化模式菜单
 void Add_record_menu();     //显示添加记录菜单
 int Add_record_model_menu();  //显示添加记录模式菜单
 int Show_record_mode_menu();     //显示记录模式菜单
+int Search_record_mode();         //显示查询模式菜单  //查询表单记录还是仓库物品
+int Search_record_menu();          //显示选择查询表单记录属性的菜单
+
 
 
 //功能函数声明
@@ -161,7 +175,7 @@ void Delay(int i);        //延时函数
 //库相关的函数
 
 struct material* Creat_ku();               //建立材料库【创建链表】
-void print_ori(struct material* head);     //输出原始表单
+void print_ori(struct material* head,int mode);     //输出原始表单
 struct material* Creat_Item_List();        //建立物品的仓库(带有一个头结点)  
 void Print_ku(struct material* thi_head);  //输出仓库的物品
 
@@ -181,15 +195,19 @@ void Show_related_record(enum material_menu link);   //显示相关的表单记录
 void Show_Cangku_Item();    //显示仓库物品清单
 
 
+
+void Search_related_record(enum material_menu link,int mode);     //查询表单记录  参数说明:link-判断检索条件 mode-判断检索模式 
+void Search_ku_item();       //查询仓库记录
+
 /*---------------------------全局变量、指针start-------------------*/
 
-int all_temp;  //用于记录实时选择的各种菜单值
-int sum_record;   //表单的数量
-int sum_item;     //仓库物品的数量
-material* base_head;    //材料库表单记录的头指针
-material* ku_head;    //仓库物品的头指针
-
-
+int all_temp=0;  //用于记录实时选择的各种菜单值
+int sum_record=0;   //表单的数量
+int sum_item=0;     //仓库物品的数量
+int sum_search = 0;   //检索链表中记录的数量
+material* base_head=NULL;    //材料库表单记录的头指针
+material* ku_head=NULL;    //仓库物品的头指针
+material* Search_head=NULL;    //查询记录时头指针
 
 int main()
 {
@@ -200,7 +218,7 @@ int main()
 	//建立表单  
 	base_head=Creat_ku();
 
-	//print_ori(base_head);     //输出原始的表单记录
+	//print_ori(base_head,1);     //输出原始的表单记录
 
 	//建立仓库
 	ku_head=Creat_Item_List();
@@ -332,20 +350,104 @@ int main()
 		//执行查询记录功能3
 		else if (main_menu_switch == search_record)
 		{
+			int search_mode = 0;  //记录查询模式 第一次、继续、重新
 			while (1)
 			{
+				
 				//查询记录相关的功能
+				if (search_mode == 0)
+				{
+					//选择查询模式
+					all_temp = Search_record_mode();
+
+				}
+				
+				//查询表单记录
+				if (all_temp == 1)
+				{
+					//选择查询的表单记录的属性
+					all_temp=Search_record_menu();
+					third_sub = (enum material_menu)all_temp;
+
+
+					//查询表单记录功能
+					if (search_mode == 0)
+					{
+						search_mode = First_search;
+					}
+					//按照编号进行检索
+					if (third_sub == seri_number)
+					{
+						Search_related_record(third_sub, search_mode);
+					}
+
+					//按照名称进行检索
+					if (third_sub == name)
+					{
+						Search_related_record(third_sub, search_mode);
+					}
+
+					//按照日期进行检索
+					if (third_sub == record_data)
+					{
+						Search_related_record(third_sub, search_mode);
+					}
+
+					//按照保管人进行检索
+					if (third_sub == person)
+					{
+						Search_related_record(third_sub, search_mode);
+					}
+
+					//按照备注进行检索
+					if (third_sub == note)
+					{
+						Search_related_record(third_sub, search_mode);
+					}
+
+					
+
+				}
+
+				//查询仓库物品记录
+				else if (all_temp == 2)
+				{
+					//查询仓库物品记录功能
+					Search_ku_item();
+
+				}
+
+
 
 				//查询完记录
 				all_temp = Third_menu();
 				third_menu_switch = (third_menu)all_temp;
+				
 				//继续筛选
 				if (third_menu_switch == conti_to_search)
 				{
-
+					if (all_temp == 1)
+					{
+						search_mode = Continue_search;
+					}
+					
 				}
+				
 				//重新查询
-				else if (third_menu_switch == anew_search)  continue;
+				else if (third_menu_switch == anew_search)
+				{
+					if (all_temp == 1)
+					{
+						search_mode = 0;
+						Search_related_record(third_sub, Clear_list);   //清空查询链表
+					}
+					else if (all_temp == 2)
+					{
+						search_mode = 0;
+					}
+			
+				}
+				
 				//回到主菜单
 				else if (third_menu_switch == third_exit_to_main)  break;
 
@@ -593,8 +695,8 @@ int Show_record_mode_menu()
 int Third_menu()
 {
 	cout << "/*---------子菜单3------------*/" << endl;
-	cout << "1.继续筛选" << endl;
-	cout << "2.重新筛选" << endl;
+	cout << "1.继续筛选(提示:仅查询表单记录可以使用该功能！)" << endl;
+	cout << "2.重新查询" << endl;
 	cout << "3.返回主菜单" << endl;
 	cout << "/*--------------------------*/" << endl;
 	cout << "请输入想要执行的功能：" << endl;
@@ -604,7 +706,45 @@ int Third_menu()
 	return temp;
 }
 
+//显示查询模式菜单  //查询表单记录还是仓库物品
+int Search_record_mode()
+{
+	cout << "1.查询表单记录" << endl;
+	cout << "2.查询仓库物品" <<endl;
+	cout << "请选择查询模式: " << endl;
+	int temp;
+	cin >> temp;
+	system("cls");
+	return temp;
+}
 
+//显示选择查询表单记录属性的菜单
+int Search_record_menu()
+{
+	cout << "1.编号" << endl;
+	cout << "2.名称" << endl;
+	cout << "3.日期" << endl;
+	cout << "4.保管人" << endl;
+	cout << "5.备注"<<endl;
+	cout << "请输入筛选条件: " << endl;
+	int temp;
+	cin >> temp;
+	switch (temp)
+	{
+		case 1:
+			temp = 1; break;
+		case 2:
+			temp = 2; break;
+		case 3:
+			temp = 6; break;
+		case 4:
+			temp = 4; break;
+		case 5:
+			temp = 7; break;
+	}
+	system("cls");
+	return temp;
+}
 
 //显示第四个子菜单    //返回值是选择的菜单值
 int Forth_menu()
@@ -876,14 +1016,25 @@ struct material* Creat_ku()
 }
 
 
-//输出表单记录
-void print_ori(struct material* head)
+//输出表单记录   参数说明： mode—用于设置模式 1-输出原始表单 2-输出查询链表记录
+void print_ori(struct material* head,int mode)
 {
-	struct material* pp = head;
+	int number = 0;
+	struct material* pp = head->next;
 	//输出表单的标题栏
 	cout << "出/入库|编号|名称|单价|出/入库数|出/入库时间【年.月.日】|保管人|备注" << endl;
 
-	for (int i = 0; i < sum_record; i++)
+	if (mode == 1)
+	{
+		number = sum_record;
+	}
+	else if (mode == 2)
+	{
+		number = sum_search;
+	}
+
+
+	for (int i = 0; i < number; i++)
 	{
 		//如何解决数据输出的排版问题???
 
@@ -1437,4 +1588,395 @@ void Show_Cangku_Item()
 		pp = pp->next;
 		cout << pp->seri_number << " " << pp->name<<" " << pp->store_num<<endl;
 	}
+}
+
+
+//查询表单记录  参数说明:link-判断检索条件 mode-判断检索模式 
+void Search_related_record(enum material_menu link,int mode)
+{
+	material search;  //记录检索的属性
+	int flag = 0;  //用来判断当前记录是否符合条件
+	int n = 0;
+	//第一次检索
+	if (mode == First_search)
+	{
+		
+		
+		sum_search = 0;
+
+		Search_head = (material *)malloc(sizeof(material));
+		material *p1=NULL, *p2=NULL;
+		material* biao_dan = base_head;
+
+		
+		//按照编号进行检索
+		if (link == seri_number)
+		{
+			cout << "请输入想要检索的材料的编号: " << endl;
+			cin >> search.seri_number;
+		}
+
+		//按照名称进行检索
+		if (link == name)
+		{
+			cout << "请输入想要检索的材料的名称: " << endl;
+			cin >> search.name;
+		}
+
+		//按照日期进行检索
+		if (link == record_data)
+		{
+			cout << "请输入想要检索的材料出库或入库日期:" << endl;
+			cin >> search.in_time.year>> search.in_time.month>> search.in_time.day;  //此处将检索的日期放到入库日期中
+		}
+
+		//按照保管人进行检索
+		if (link == person)
+		{
+			cout << "请输入想要检索的材料的保管人: " << endl;
+			cin >> search.person;
+		}
+
+		//按照备注进行检索
+		if (link == note)
+		{
+			cout << "请输入想要检索的材料的备注: " << endl;
+			cin >> search.note;
+		}
+
+		system("cls");
+
+		//已完成检索内容的输入，接下来就要进行检索
+		for (int i = 0; i < sum_record; i++)
+		{
+			biao_dan = biao_dan->next;
+
+			//按照编号进行检索
+			if (link == seri_number)
+			{
+				if (strcmp(search.seri_number, biao_dan->seri_number) == 0)
+				{
+					flag = 1;
+				}
+			}
+
+			//按照名称进行检索
+			if (link == name)
+			{
+				if (strcmp(search.name, biao_dan->name) == 0)
+				{
+					flag = 1;
+				}
+			}
+
+			//按照日期进行检索
+			if (link == record_data)
+			{
+				//如果是入库记录
+				if (strcmp(biao_dan->in_out, "入库") == 0)
+				{
+					if (search.in_time.year == biao_dan->in_time.year
+						&& search.in_time.month == biao_dan->in_time.month
+						&& search.in_time.day == biao_dan->in_time.day)
+					{
+						flag = 1;
+					}
+				}
+				//如果是出库记录
+				else if (strcmp(biao_dan->in_out,"出库") == 0)
+				{
+					if (search.out_time.year == biao_dan->out_time.year
+						&& search.out_time.month == biao_dan->out_time.month
+						&& search.out_time.day == biao_dan->out_time.day)
+					{
+						flag = 1;
+					}
+				}
+				
+			}
+
+			//按照保管人进行检索
+			if (link == person)
+			{
+				if (strcmp(search.person, biao_dan->person) == 0)
+				{
+					flag = 1;
+				}
+			}
+
+			//按照备注进行检索
+			if (link == note)
+			{
+				if (strcmp(search.note, biao_dan->note) == 0)
+				{
+					flag = 1;
+				}
+			}
+
+
+			//如果该记录符合检索记录的话，就将该记录加到检索链表中
+			if (flag == 1)
+			{
+				n++;
+				//记录赋值
+				p1 = (material*)malloc(sizeof(material));
+
+				strcpy(p1->seri_number,biao_dan->seri_number);
+				strcpy(p1->name, biao_dan->name);
+				p1->unit_price = biao_dan->unit_price;
+				strcpy(p1->in_out, biao_dan->in_out);
+				if (strcmp(biao_dan->in_out, "入库") == 0)
+				{
+					p1->in_num=biao_dan->in_num;
+					p1->in_time.year = biao_dan->in_time.year;
+					p1->in_time.month = biao_dan->in_time.month;
+					p1->in_time.day = biao_dan->in_time.day;
+				}
+				else if (strcmp(biao_dan->in_out, "出库") == 0)
+				{
+					p1->out_num = biao_dan->out_num;
+					p1->out_time.year = biao_dan->out_time.year;
+					p1->out_time.month = biao_dan->out_time.month;
+					p1->out_time.day = biao_dan->out_time.day;
+				}
+				strcpy(p1->person, biao_dan->person);
+				strcpy(p1->note, biao_dan->note);
+
+				//新结点添加到检索链表中
+				if (n == 1)
+				{
+					Search_head->next = p1;
+				}
+				else
+				{
+					p2->next = p1;
+				}
+				p2 = p1;
+			
+				flag = 0;  //清除符合检索标志位
+				sum_search++;  //记录符合检索的记录数量
+			}
+
+			
+		}
+
+		p2->next = NULL;
+	}
+
+	//继续检索
+	else if (mode == Continue_search)
+	{
+		int sum_search_temp = sum_search;
+		material* p1 = NULL, * p2 = NULL;
+		material* biao_dan = Search_head;
+		material* temp_head = (material*)malloc(sizeof(material));
+		//按照编号进行检索
+		if (link == seri_number)
+		{
+			cout << "请输入想要检索的材料的编号: " << endl;
+			cin >> search.seri_number;
+		}
+
+		//按照名称进行检索
+		if (link == name)
+		{
+			cout << "请输入想要检索的材料的名称: " << endl;
+			cin >> search.name;
+		}
+
+		//按照日期进行检索
+		if (link == record_data)
+		{
+			cout << "请输入想要检索的材料出库或入库日期:" << endl;
+			cin >> search.in_time.year >> search.in_time.month >> search.in_time.day;  //此处将检索的日期放到入库日期中
+		}
+
+		//按照保管人进行检索
+		if (link == person)
+		{
+			cout << "请输入想要检索的材料的保管人: " << endl;
+			cin >> search.person;
+		}
+
+		//按照备注进行检索
+		if (link == note)
+		{
+			cout << "请输入想要检索的材料的备注: " << endl;
+			cin >> search.note;
+		}
+
+		system("cls");
+
+		//已完成再次筛选内容的输入，接下来就要从查询链表中重新检索
+		for (int i = 0; i < sum_search_temp; i++)
+		{
+			biao_dan = biao_dan->next;
+
+			//按照编号进行检索
+			if (link == seri_number)
+			{
+				if (strcmp(search.seri_number, biao_dan->seri_number) == 0)
+				{
+					flag = 1;
+				}
+			}
+
+			//按照名称进行检索
+			if (link == name)
+			{
+				if (strcmp(search.name, biao_dan->name) == 0)
+				{
+					flag = 1;
+				}
+			}
+
+			//按照日期进行检索
+			if (link == record_data)
+			{
+				//如果是入库记录
+				if (strcmp(biao_dan->in_out, "入库") == 0)
+				{
+					if (search.in_time.year == biao_dan->in_time.year
+						&& search.in_time.month == biao_dan->in_time.month
+						&& search.in_time.day == biao_dan->in_time.day)
+					{
+						flag = 1;
+					}
+				}
+				//如果是出库记录
+				else if (strcmp(biao_dan->in_out, "出库") == 0)
+				{
+					if (search.out_time.year == biao_dan->out_time.year
+						&& search.out_time.month == biao_dan->out_time.month
+						&& search.out_time.day == biao_dan->out_time.day)
+					{
+						flag = 1;
+					}
+				}
+
+			}
+
+			//按照保管人进行检索
+			if (link == person)
+			{
+				if (strcmp(search.person, biao_dan->person) == 0)
+				{
+					flag = 1;
+				}
+			}
+
+			//按照备注进行检索
+			if (link == note)
+			{
+				if (strcmp(search.note, biao_dan->note) == 0)
+				{
+					flag = 1;
+				}
+			}
+
+
+			//如果该记录符合检索记录的话，就将该记录加到检索链表中
+			if (flag == 1)
+			{
+				n++;
+				//记录赋值
+				p1 = (material*)malloc(sizeof(material));
+
+				strcpy(p1->seri_number, biao_dan->seri_number);
+				strcpy(p1->name, biao_dan->name);
+				p1->unit_price = biao_dan->unit_price;
+				strcpy(p1->in_out, biao_dan->in_out);
+				if (strcmp(biao_dan->in_out, "入库") == 0)
+				{
+					p1->in_num = biao_dan->in_num;
+					p1->in_time.year = biao_dan->in_time.year;
+					p1->in_time.month = biao_dan->in_time.month;
+					p1->in_time.day = biao_dan->in_time.day;
+				}
+				else if (strcmp(biao_dan->in_out, "出库") == 0)
+				{
+					p1->out_num = biao_dan->out_num;
+					p1->out_time.year = biao_dan->out_time.year;
+					p1->out_time.month = biao_dan->out_time.month;
+					p1->out_time.day = biao_dan->out_time.day;
+				}
+				strcpy(p1->person, biao_dan->person);
+				strcpy(p1->note, biao_dan->note);
+
+				//新结点添加到检索链表中
+				if (n == 1)
+				{
+					temp_head->next = p1;
+				}
+				else
+				{
+					p2->next = p1;
+				}
+				p2 = p1;
+
+				flag = 0;  //清除符合检索标志位
+				sum_search++;  //记录符合检索的记录数量
+			}
+
+			if(flag==0)
+			{
+				sum_search--;
+			}
+
+		}
+
+		p2->next = NULL;
+
+		Search_head = temp_head;
+		
+	}
+
+	if (mode == First_search || mode == Continue_search)
+	{
+		print_ori(Search_head, 2);
+	}
+
+		//清空检索链表
+	else if (mode == Clear_list)
+	{
+		
+		material* temp_head_behind = Search_head->next;
+		material* temp_head_front= Search_head->next;
+		for (int i = 0; i < sum_search; i++)
+		{
+			temp_head_front = temp_head_front->next;
+			free(temp_head_behind);
+			temp_head_behind = temp_head_front;
+
+		}
+		system("cls");
+	}
+	
+
+	
+}
+
+
+//查询仓库记录
+void Search_ku_item()
+{
+	material* temp_head = ku_head;
+	material* search = (material*)malloc(sizeof(material));
+	material* p1 = NULL, * p2 = NULL;
+
+	cout << "请输入想要查询仓库物品的名称: "<<endl;
+	cin >> search->name;
+
+	system("cls");
+	for (int i = 0; i < sum_item; i++)
+	{
+		
+		temp_head = temp_head->next;
+
+		if (strcmp(temp_head->name, search->name) == 0)
+		{
+			cout << temp_head->seri_number << " " << temp_head->name << " " << temp_head->store_num << endl;
+		}
+	}
+	
 }
