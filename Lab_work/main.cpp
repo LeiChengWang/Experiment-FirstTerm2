@@ -4,13 +4,26 @@ using namespace std;
 #include <stdlib.h>
 #include <windows.h>
 
+#pragma warning(disable:4996)
 
 /*------------------------宏定义start--------------------------*/
 
 //用来记录查询模式
-#define First_search     1
-#define Continue_search  2
-#define Clear_list 3
+#define First_search     1     //首次查询
+#define Continue_search  2     //继续筛选
+#define Clear_list       3     //清空查询链表
+
+
+//用于模式跳跃
+#define normal          0     
+#define jump_to_first   1
+#define jump_to_second  2
+#define jump_to_third   3
+#define jump_to_forth   4
+#define jump_to_fifth   5
+
+
+
 
 
 
@@ -118,15 +131,18 @@ enum forth_sub_menu
 //材料属性菜单
 enum material_menu
 {
-	seri_number=1,  //编号
-	name,           //名称
-	unit_price,     //单价
-	person,         //保管人	
+	seri_number=1,   //编号
+	name,            //名称
+	unit_price,      //单价
+	person,          //保管人	
 	in_out_way,      //出入库方式
 	record_data,     //记录的日期
-	note,           //备注
+	note,			 //备注
 	num,             //数量
-	all              //全部属性
+	all,             //全部属性
+	in_out_time,     //出入库时间
+	change_all,       //修改全部
+	in_out_num       //出入库数量
 }sec_sub,third_sub,forth_sub;
 
 
@@ -162,9 +178,9 @@ int material_base_menu();  //显示材料初始化模式菜单
 void Add_record_menu();     //显示添加记录菜单
 int Add_record_model_menu();  //显示添加记录模式菜单
 int Show_record_mode_menu();     //显示记录模式菜单
-int Search_record_mode();         //显示查询模式菜单  //查询表单记录还是仓库物品
+int Search_record_mode();         //显示查询模式菜单     //查询表单记录还是仓库物品
 int Search_record_menu();          //显示选择查询表单记录属性的菜单
-
+int Change_record_menu();           //显示修改材料属性菜单
 
 
 //功能函数声明
@@ -197,17 +213,25 @@ void Show_Cangku_Item();    //显示仓库物品清单
 
 
 void Search_related_record(enum material_menu link,int mode);     //查询表单记录  参数说明:link-判断检索条件 mode-判断检索模式 
-void Search_ku_item();       //查询仓库记录
+void Search_ku_item();         //查询仓库记录
+  
+void Change_record(enum material_menu link, int mode);      //修改单条表单记录功能 
+void Update_change_to_record(struct material* Change_record_head, struct material* now_search_head, struct material* base_head);   //将修改的单条查询记录更新到表单记录中
+void Change_many_record(enum material_menu link, int mode);   //修改多条表单记录功能
+
+
 
 /*---------------------------全局变量、指针start-------------------*/
 
 int all_temp=0;  //用于记录实时选择的各种菜单值
-int sum_record=0;   //表单的数量
-int sum_item=0;     //仓库物品的数量
-int sum_search = 0;   //检索链表中记录的数量
-material* base_head=NULL;    //材料库表单记录的头指针
-material* ku_head=NULL;    //仓库物品的头指针
-material* Search_head=NULL;    //查询记录时头指针
+int sum_record=0;       //表单的数量
+int sum_item=0;         //仓库物品的数量
+int sum_search = 0;     //检索链表中记录的数量
+int mode_jump= normal;          //当有特殊需要时，进行不同模式之间的跳转，正常是顺序执行的，这个可以实现跳跃
+material* base_head=NULL;       //材料库表单记录的头指针
+material* ku_head=NULL;         //仓库物品的头指针
+material* Search_head=NULL;     //查询记录时头指针
+material* Change_record_head = NULL;     //修改记录位置指针
 
 int main()
 {
@@ -231,9 +255,21 @@ int main()
 	//进入仓库的实时材料管理系统
 	while (1)
 	{
-		all_temp=Main_menu();  //得到主菜单的选择值
+		//跳跃模式关闭  进入正常模式（用户自己进行选择）
+		if (mode_jump == normal)
+		{
+			all_temp = Main_menu();  //得到主菜单的选择值
 
-		main_menu_switch = (main_menu)all_temp;  //枚举类型的转换
+			main_menu_switch = (main_menu)all_temp;  //枚举类型的转换
+		}
+
+		//开启跳跃模式
+		if (mode_jump == jump_to_third)
+		{
+			main_menu_switch = search_record;
+		}
+
+		
 
 		//执行添加记录功能1
 		if (main_menu_switch == add_record)
@@ -353,14 +389,23 @@ int main()
 			int search_mode = 0;  //记录查询模式 第一次、继续、重新
 			while (1)
 			{
-				
-				//查询记录相关的功能
-				if (search_mode == 0)
+				if (mode_jump == normal)
 				{
-					//选择查询模式
-					all_temp = Search_record_mode();
+					//查询记录相关的功能
+					if (search_mode == 0)
+					{
+						//选择查询模式
+						all_temp = Search_record_mode();
 
+					}
 				}
+
+				//由修改模式跳转至此，进行表单记录的查询
+				else if (mode_jump == jump_to_third)
+				{
+					all_temp = 1;
+				}
+				
 				
 				//查询表单记录
 				if (all_temp == 1)
@@ -449,7 +494,16 @@ int main()
 				}
 				
 				//回到主菜单
-				else if (third_menu_switch == third_exit_to_main)  break;
+				else if (third_menu_switch == third_exit_to_main)
+				{
+					//开启跳跃模式
+					if (mode_jump == jump_to_third)
+					{
+						main_menu_switch = change_record;
+						mode_jump = jump_to_forth;
+					}
+					break;
+				}
 
 			}
 		}
@@ -460,23 +514,54 @@ int main()
 			int change_flag = 1;  //修改标志位
 			while (1)
 			{
+				//首次进入修改模式，进行模式选择
+				if (mode_jump == normal)
+				{
+					//选择修改模式
+					all_temp = Forth_menu();
+					forth_menu_switch = (forth_menu)all_temp;
+				}
 
-				//选择修改模式
-				all_temp = Forth_menu();
-				forth_menu_switch = (forth_menu)all_temp;
+				//由跳跃模式从查询跳到这里就不用重新选择修改模式
+				else if (mode_jump!=normal)
+				{
+					forth_menu_switch = forth_menu_switch;  
+				}
+			
 				if (forth_menu_switch == change_one)
 				{
 					while (1)
 					{
+						//已经从查询模式回来，恢复正常模式
+						if (mode_jump == jump_to_forth)
+						{
+							mode_jump = normal;
+						}
+						//询问用户想要修改的具体的表单记录  执行跳跃模式
+						else if (mode_jump != jump_to_third&& change_flag!=2&& change_flag!=3)
+						{
+							mode_jump = jump_to_third;
+							break;
+						}
+						
+
 						//第一次修改单个表单记录
 						if (change_flag == 1)
 						{
+								//将经由查询模式得到的表单记录定位到表单库中的具体位置
+							     
+								//函数函数....................................
+								
+								cout << "已找到想要修改的表单记录" << endl;
+
 								//选择要修改的材料属性值	
-								all_temp = Material_menu();
+								all_temp = Change_record_menu();
 								forth_sub = (material_menu)all_temp;
 
-								//执行第一次修改功能
+								system("cls");
 
+								//执行第一次修改功能
+								Change_record(forth_sub,1);
 
 						}
 
@@ -484,20 +569,23 @@ int main()
 						else if (change_flag == 2)
 						{
 								//选择继续要修改的材料属性值	
-								all_temp = Material_menu();
+								all_temp = Change_record_menu();
 								forth_sub = (material_menu)all_temp;
+								Change_record(forth_sub,2);
 
 								//继续执行修改功能
 						}
+
 						else if (change_flag == 3)
 						{
 							//执行修改后数据显示的功能
-
+							Change_record(forth_sub, 3);
 						}
 
 
 
-						//修改完成后
+						//修改完成后 
+						
 						all_temp = Forth_sub_menu();
 						forth_sub_menu_switch = (forth_sub_menu)all_temp;
 						if (forth_sub_menu_switch == continue_change)
@@ -525,21 +613,29 @@ int main()
 					while (1)
 					{
 						//批量修改表单记录
-						//选择要修改的材料属性值	
-						all_temp = Material_menu();
-						forth_sub = (material_menu)all_temp;
 
+						//已经从查询模式回来，恢复正常模式
+						if (mode_jump == jump_to_forth)
+						{
+							mode_jump = normal;
+						}
+						//询问用户想要修改的具体的表单记录  执行跳跃模式
+						else if (mode_jump != jump_to_third && change_flag != 2 && change_flag != 3)
+						{
+							mode_jump = jump_to_third;
+							break;
+						}
 
 						//第一次修改单个表单记录
 						if (change_flag == 1)
 						{
 							//选择要修改的材料属性值	
-							all_temp = Material_menu();
+							all_temp = Change_record_menu();
 							forth_sub = (material_menu)all_temp;
 
 							//执行第一次修改功能
 
-
+							Change_many_record(forth_sub,1);
 						}
 
 						//继续修改该表单记录
@@ -550,11 +646,13 @@ int main()
 							forth_sub = (material_menu)all_temp;
 
 							//继续执行修改功能
+							Change_many_record(forth_sub,2);
 						}
 
 						else if (change_flag == 3)
 						{
 							//执行修改后数据显示的功能
+							Change_many_record(forth_sub,3);
 
 						}
 
@@ -792,6 +890,46 @@ int Material_menu()
 	return temp;
 }
 
+//显示修改材料属性菜单
+int Change_record_menu()
+{
+	cout << "请选择想要修改的表单记录的属性：" << endl;
+	cout << "1.编号" << endl;
+	cout << "2.名称" << endl;
+	cout << "3.单价" << endl;
+	cout << "4.出入库记录" << endl;
+	cout << "5.入库数/出库数" << endl;
+	cout << "6.入库/出库时间" << endl;
+	cout << "7.保管人" << endl;
+	cout << "8.备注" << endl;
+	cout << "9.全部修改" << endl;
+	int temp;
+	cin >> temp;
+	switch (temp)
+	{
+	case 1:
+		temp = 1; break;
+	case 2:
+		temp = 2; break;
+	case 3:
+		temp = 3; break;
+	case 4:
+		temp = 5; break;
+	case 5:
+		temp = 12; break;
+	case 6:
+		temp = 6; break;
+	case 7:
+		temp = 4; break;
+	case 8:
+		temp = 7; break;
+	case 9:
+		temp = 11; break;
+	}
+	return temp;
+}
+
+
 
 //显示第四个子菜单的子菜单      //返回值是选择的菜单值
 int Forth_sub_menu()
@@ -892,13 +1030,6 @@ struct material* Creat_ku()
 					break;
 				}
 				
-				
-
-
-				
-
-			
-
 					//入库记录
 					if (strcmp(p1->in_out, "入库") == 0)
 					{
@@ -1024,11 +1155,11 @@ void print_ori(struct material* head,int mode)
 	//输出表单的标题栏
 	cout << "出/入库|编号|名称|单价|出/入库数|出/入库时间【年.月.日】|保管人|备注" << endl;
 
-	if (mode == 1)
+	if (mode == 1)         //显示原始的表单记录
 	{
 		number = sum_record;
 	}
-	else if (mode == 2)
+	else if (mode == 2)    //显示查询链表
 	{
 		number = sum_search;
 	}
@@ -1080,6 +1211,9 @@ void Print_ku(struct material* thi_head)
 		pp = pp->next;
 	}
 }
+
+//结点与结点相互赋值  将p2赋值给p1
+void Copy_node_to_node(struct material* p1, struct material* p2);
 
 
 /*-----------------------功能函数---------------------------*/
@@ -1957,7 +2091,7 @@ void Search_related_record(enum material_menu link,int mode)
 }
 
 
-//查询仓库记录
+//查询仓库记录			
 void Search_ku_item()
 {
 	material* temp_head = ku_head;
@@ -1979,4 +2113,477 @@ void Search_ku_item()
 		}
 	}
 	
+}
+
+
+//将经由查询模式得到的表单记录定位到表单库中的具体位置
+
+
+//修改单条表单记录功能   参数说明 link: 修改的表单记录属性  mode:修改模式 1-首次修改 2-继续修改 3-显示记录
+void Change_record(enum material_menu link,int mode)
+{
+	struct material* temp_data = (material*)malloc(sizeof(material));  //临时数据存储
+	int mode_change_all = 0;
+	if (link == all)  mode_change_all = 1;  //如果修改全部的属性 就要把所有的if执行一遍
+	struct material* one_record;  //用于保存查询到的单条原始表单记录
+
+
+	//首次修改
+	if (mode == 1||mode==2)
+	{
+
+		//找到要修改的表单记录
+		one_record = Search_head->next;
+
+		//将原始的结点值赋给临时数据存储结点
+		Copy_node_to_node(temp_data, one_record);
+		
+
+		//修改某一属性
+		
+		//修改编号
+		if (link == seri_number|| mode_change_all==1)
+		{
+			cout << "请输入修改后的编号" << endl;
+			cin >> temp_data->seri_number;
+		}
+		//修改名字
+		if (link == name || mode_change_all == 1)
+		{
+			cout << "请输入修改后的姓名" << endl;
+			cin >> temp_data->name;
+		}
+		//修改单价
+		if (link == unit_price || mode_change_all == 1)
+		{
+			cout << "请输入修改后的单价" << endl;
+			cin >> temp_data->unit_price;
+		}
+		//修改出入库记录
+		if (link == in_out_way || mode_change_all == 1)
+		{
+			cout << "请输入修改后的出入库记录" << endl;
+			cin >> temp_data->in_out;
+		}
+		//修改出入库数量
+		if (link == in_out_num || mode_change_all == 1)
+		{
+			cout << "请输入修改后的出入库数量" << endl;
+			if (strcmp(temp_data->in_out, "入库") == 0)
+			{
+				cin >> temp_data->in_num;
+			}
+			else if (strcmp(temp_data->in_out, "出库") == 0)
+			{
+				cin >> temp_data->out_num;
+			}
+		}
+
+		//修改出入库时间
+		if (link == in_out_time || mode_change_all == 1)
+		{
+			cout << "请输入修改后的出入库时间" << endl;
+			if (strcmp(temp_data->in_out, "入库") == 0)
+			{
+				cin >> temp_data->in_time.year >> temp_data->in_time.month >> temp_data->in_time.day;
+
+			}
+			else if (strcmp(temp_data->in_out, "出库") == 0)
+			{
+				cin >> temp_data->out_time.year >> temp_data->out_time.month >> temp_data->out_time.day;
+			}
+		}
+		//修改保管人
+		if (link==person || mode_change_all == 1)
+		{
+			cout << "请输入修改后的保管人";
+			cin >> temp_data->person;
+		}
+		//修改备注
+		if (link == note || mode_change_all == 1)
+		{
+			cout << "请输入修改后的备注" << endl;
+			cin >> temp_data->note;
+		}
+		//全部修改
+		if (link == all)
+		{
+			cout <<"已经全部修改完成";
+		}
+		
+
+		//到这里仅仅是将查询的表单记录修改完
+
+		//将修改的查询记录更新到表单记录中
+		Update_change_to_record(temp_data, one_record,base_head);
+
+		//将表单记录更新到仓库中
+		ku_head->next = NULL;  //先将仓库的物品清空
+		sum_item = 0;    //仓库物品清零
+		Handout_ku_init(base_head,ku_head);
+
+		//将修改完的临时结点重新赋值给查询链表中的结点,以便于下一次修改
+		Copy_node_to_node(one_record, temp_data);
+	}
+
+
+	//显示记录
+	if (mode == 3)
+	{
+		temp_data = Search_head->next;
+		if (strcmp(temp_data->in_out, "入库") == 0)
+		{
+			cout << temp_data->in_out << " " << temp_data->seri_number << " " << temp_data->name << " " << temp_data->unit_price << " " << temp_data->in_num << " "
+				<< temp_data->in_time.year << "年" << temp_data->in_time.month << "月" << temp_data->in_time.day << "日" << " "
+				<< temp_data->person << " " << temp_data->note << endl;
+		}
+
+		if (strcmp(temp_data->in_out, "出库") == 0)
+		{
+			cout << temp_data->in_out << " " << temp_data->seri_number << " " << temp_data->name << " " << temp_data->unit_price << " " << temp_data->out_num << " "
+				<< temp_data->out_time.year << "年" << temp_data->out_time.month << "月" << temp_data->out_time.day << "日" << " "
+				<< temp_data->person << " " << temp_data->note << endl;
+
+		}
+	}
+}
+
+
+//将修改的单条查询记录更新到表单记录中  参数说明： 第一个是修改后结点数据   第二个是相应的查询链表原始结点数据  第三个是表单记录头指针
+void Update_change_to_record(struct material* Change_record_head, struct material* now_search_head, struct material* base_head)
+{
+	int find_flag = 0;  //搜索标志位 0-没找到 1-找到
+
+	struct material* now_base_record = base_head->next;  //用于遍历链表的指针
+
+
+	//搜索表单记录,找到当前的查询记录对应的表单记录的位置，将已修改的结点赋值给搜索到的结点
+	for (int i = 0; i < sum_record; i++)
+	{
+		if (strcmp(now_base_record->seri_number, now_search_head->seri_number) == 0)
+		{
+			if (strcmp(now_base_record->name, now_search_head->name) == 0)
+			{
+				if (now_base_record->unit_price == now_search_head->unit_price)
+				{
+					if (strcmp(now_base_record->in_out, now_search_head->in_out) == 0)
+					{
+						if (strcmp(now_base_record->in_out, "入库") == 0)
+						{
+							if (now_base_record->in_num == now_search_head->in_num)
+							{
+								if (now_base_record->in_time.year == now_search_head->in_time.year
+									&& now_base_record->in_time.month == now_search_head->in_time.month
+									&& now_base_record->in_time.day == now_search_head->in_time.day)
+								{
+									if (strcmp(now_base_record->person, now_search_head->person) == 0)
+									{
+										if (strcmp(now_base_record->note, now_search_head->note) == 0)
+										{
+											//执行到这里，就找到一样的结点了
+											//进行赋值
+											Copy_node_to_node(now_base_record, Change_record_head);
+											break;
+										}
+									}
+								}
+							}
+
+						}
+						else if (strcmp(now_base_record->in_out, "出库") == 0)
+						{
+							if (now_base_record->out_num == now_search_head->out_num)
+							{
+								if (now_base_record->out_time.year == now_search_head->out_time.year
+									&& now_base_record->out_time.month == now_search_head->out_time.month
+									&& now_base_record->out_time.day == now_search_head->out_time.day)
+								{
+									if (strcmp(now_base_record->person, now_search_head->person) == 0)
+									{
+										if (strcmp(now_base_record->note, now_search_head->note) == 0)
+										{
+											//执行到这里，就找到一样的结点了
+											//进行赋值
+											Copy_node_to_node(now_base_record, Change_record_head);
+											break;
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		now_base_record = now_base_record->next;
+	}
+
+}
+
+
+//结点与结点相互赋值  将p2赋值给p1
+void Copy_node_to_node(struct material* p1, struct material* p2)
+{
+	strcpy(p1->seri_number, p2->seri_number);
+	strcpy(p1->name, p2->name);
+	p1->unit_price = p2->unit_price;
+	strcpy(p1->in_out, p2->in_out);
+	if (strcmp(p1->in_out, "入库") == 0)
+	{
+		p1->in_num = p2->in_num;
+		p1->in_time.year = p2->in_time.year;
+		p1->in_time.month = p2->in_time.month;
+		p1->in_time.day = p2->in_time.day;
+
+	}
+	else if (strcmp(p1->in_out, "出库") == 0)
+	{
+		p1->out_num = p2->out_num;
+		p1->out_time.year = p2->out_time.year;
+		p1->out_time.month = p2->out_time.month;
+		p1->out_time.day = p2->out_time.day;
+	}
+	strcpy(p1->person, p2->person);
+	strcpy(p1->note, p2->note);
+}
+
+//修改多条表单记录功能
+void Change_many_record(enum material_menu link, int mode)
+{
+	struct material* temp_data = (material*)malloc(sizeof(material));  //临时数据存储
+	int mode_change_all = 0;
+	if (link == all)  mode_change_all = 1;  //如果修改全部的属性 就要把所有的if执行一遍
+	struct material* one_record;  //用于遍历查询到的多条原始表单记录
+	struct material* Copy_search_head = NULL;   //查询链表的复制链表（有头结点） 
+	struct material* one_copy_record;         //用于遍历复制链表
+
+	//首次修改
+	if (mode == 1 || mode == 2)
+	{
+		//找到要修改的表单记录
+		one_record = Search_head->next;
+		Copy_node_to_node(temp_data,one_record);  //初始化临时数据结点
+
+		//将查询链表复制一份，得到Copy_search_list,修改复制链表的数据，原始的查询链表不可以动
+		//准备工作
+		int n = 0;
+		Copy_search_head = (struct material*)malloc(sizeof(material));
+		struct material* p1 = NULL;    //用于不断地创建新的结点
+		struct material* p2 = NULL;    //用于指向链表的最后的一个结点
+		Copy_search_head->next = NULL;
+
+		//开始复制
+		for (int i = 0; i < sum_search; i++)
+		{
+			n++;
+			p1= (struct material*)malloc(sizeof(material));
+			Copy_node_to_node(p1, one_record);
+			if (n == 1)
+			{
+				Copy_search_head->next = p1;
+			}
+			else if (n > 1)
+			{
+				p2->next = p1;
+			}
+			p2 = p1;
+
+			one_record = one_record->next;   //查询链表的下一个结点
+			
+
+		}
+		p2->next = NULL;
+
+		//修改某一属性 修改的值赋给临时结点
+		//修改编号
+		if (link == seri_number || mode_change_all == 1)
+		{
+			cout << "请输入修改后的编号" << endl;
+			cin >> temp_data->seri_number;
+		}
+		//修改名字
+		if (link == name || mode_change_all == 1)
+		{
+			cout << "请输入修改后的姓名" << endl;
+			cin >> temp_data->name;
+		}
+		//修改单价
+		if (link == unit_price || mode_change_all == 1)
+		{
+			cout << "请输入修改后的单价" << endl;
+			cin >> temp_data->unit_price;
+		}
+		//修改出入库记录
+		if (link == in_out_way || mode_change_all == 1)
+		{
+			cout << "请输入修改后的出入库记录" << endl;
+			cin >> temp_data->in_out;
+		}
+		//修改出入库数量
+		if (link == in_out_num || mode_change_all == 1)
+		{
+			cout << "请选择想要修改入库数还是出库数??  输入<入库> or <出库>"<<endl;
+			cin >> temp_data->in_out;
+			cout << "请输入修改后的出入库数量" << endl;
+			if (strcmp(temp_data->in_out, "入库") == 0)
+			{
+				cin >> temp_data->in_num;
+			}
+			else if (strcmp(temp_data->in_out, "出库") == 0)
+			{
+				cin >> temp_data->out_num;
+			}
+		}
+
+		//修改出入库时间
+		if (link == in_out_time || mode_change_all == 1)
+		{
+			cout << "请选择想要修改入库时间还是出库时间??  输入<入库> or <出库>" << endl;
+			cin >> temp_data->in_out;
+			cout << "请输入修改后的出入库时间" << endl;
+			if (strcmp(temp_data->in_out, "入库") == 0)
+			{
+				cin >> temp_data->in_time.year >> temp_data->in_time.month >> temp_data->in_time.day;
+
+			}
+			else if (strcmp(temp_data->in_out, "出库") == 0)
+			{
+				cin >> temp_data->out_time.year >> temp_data->out_time.month >> temp_data->out_time.day;
+			}
+		}
+		//修改保管人
+		if (link == person || mode_change_all == 1)
+		{
+			cout << "请输入修改后的保管人";
+			cin >> temp_data->person;
+		}
+		//修改备注
+		if (link == note || mode_change_all == 1)
+		{
+			cout << "请输入修改后的备注" << endl;
+			cin >> temp_data->note;
+		}
+		//全部修改
+		if (link == all)
+		{
+			cout << "已经全部修改完成";
+		}
+		
+		one_record = Search_head->next;               //重新指向查询链表的第一个结点
+		one_copy_record = Copy_search_head->next;     //指向赋值链表的第一个结点
+
+		//将复制链表中的结点一个一个的修改  单一属性的修改或者全部属性的修改
+		for (int i = 0; i < sum_search; i++)
+		{
+			if (link == seri_number)
+			{
+				strcpy(one_copy_record->seri_number,temp_data->seri_number);
+			}
+			//修改名字
+			if (link == name)
+			{
+				strcpy(one_copy_record->name, temp_data->name);
+			}
+			//修改单价
+			if (link == unit_price)
+			{
+				one_copy_record->unit_price= temp_data->unit_price;
+			}
+			//修改出入库记录
+			if (link == in_out_way)
+			{
+				strcpy(one_copy_record->in_out,temp_data->in_out);
+			}
+			//修改出入库数量
+			if (link == in_out_num)
+			{
+				cout << "请输入修改后的出入库数量" << endl;
+				if (strcmp(temp_data->in_out, "入库") == 0)
+				{
+					one_copy_record->in_num= temp_data->in_num;
+				}
+				else if (strcmp(temp_data->in_out, "出库") == 0)
+				{
+					one_copy_record->out_num=temp_data->out_num;
+				}
+			}
+
+			//修改出入库时间
+			if (link == in_out_time)
+			{
+				cout << "请输入修改后的出入库时间" << endl;
+				if (strcmp(temp_data->in_out, "入库") == 0)
+				{
+					one_copy_record->in_time.year= temp_data->in_time.year;
+					one_copy_record->in_time.month = temp_data->in_time.month;
+					one_copy_record->in_time.day = temp_data->in_time.day;
+
+				}
+				else if (strcmp(temp_data->in_out, "出库") == 0)
+				{
+					one_copy_record->out_time.year = temp_data->out_time.year;
+					one_copy_record->out_time.month = temp_data->out_time.month;
+					one_copy_record->out_time.day = temp_data->out_time.day;
+				}
+			}
+			//修改保管人
+			if (link == person)
+			{
+				strcpy(one_copy_record->person,temp_data->person);
+			}
+			//修改备注
+			if (link == note)
+			{
+				strcpy(one_copy_record->note, temp_data->note);
+			}
+			//全部修改
+			if (link == all)
+			{
+				Copy_node_to_node(one_copy_record, temp_data);
+			}
+
+			
+			one_copy_record = one_copy_record->next;     //换复制链表中的下一个结点
+		} 
+
+		one_record = Search_head->next;               //重新指向查询链表的第一个结点
+		one_copy_record = Copy_search_head->next;     //指向赋值链表的第一个结点
+
+		//到这里仅仅是将查询链表的结点修改完
+
+		//将修改的查询记录更新到表单记录中
+		for (int i = 0; i < sum_search; i++)
+		{
+			Update_change_to_record(one_copy_record, one_record, base_head);
+			one_record = one_record->next;
+			one_copy_record = one_copy_record->next;
+		}
+		
+
+		//将表单记录更新到仓库中
+		ku_head->next = NULL;  //先将仓库的物品清空
+		sum_item = 0;    //仓库物品清零
+		Handout_ku_init(base_head, ku_head);
+
+		one_record = Search_head->next;               //重新指向查询链表的第一个结点
+		one_copy_record = Copy_search_head->next;     //指向赋值链表的第一个结点
+
+		//将修改完的临时结点重新赋值给查询链表中的结点,以便于下一次修改
+		for (int i = 0; i < sum_search; i++)
+		{
+			Copy_node_to_node(one_record, one_copy_record);
+			one_record = one_record->next;
+			one_copy_record = one_copy_record->next;
+		}
+		
+		
+	}
+
+
+	//显示记录
+	if (mode == 3)
+	{
+		print_ori(Search_head,2);
+	}
 }
