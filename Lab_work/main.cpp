@@ -3,6 +3,8 @@ using namespace std;
 #include <string.h>
 #include <stdlib.h>
 #include <windows.h>
+#include <fstream>
+#include <iomanip>
 
 #pragma warning(disable:4996)
 
@@ -181,6 +183,7 @@ int Show_record_mode_menu();     //显示记录模式菜单
 int Search_record_mode();         //显示查询模式菜单     //查询表单记录还是仓库物品
 int Search_record_menu();          //显示选择查询表单记录属性的菜单
 int Change_record_menu();           //显示修改材料属性菜单
+int Write_record_ku_menu();           //显示写入文件模式菜单  表单记录还是仓库物品清单
 
 
 //功能函数声明
@@ -218,7 +221,7 @@ void Search_ku_item();         //查询仓库记录
 void Change_record(enum material_menu link, int mode);      //修改单条表单记录功能 
 void Update_change_to_record(struct material* Change_record_head, struct material* now_search_head, struct material* base_head);   //将修改的单条查询记录更新到表单记录中
 void Change_many_record(enum material_menu link, int mode);   //修改多条表单记录功能
-
+void Write_in_file(int mode);    //写入文件功能  参数说明 mode 1-保存表单记录 2-保存仓库物品清单
 
 
 /*---------------------------全局变量、指针start-------------------*/
@@ -232,6 +235,8 @@ material* base_head=NULL;       //材料库表单记录的头指针
 material* ku_head=NULL;         //仓库物品的头指针
 material* Search_head=NULL;     //查询记录时头指针
 material* Change_record_head = NULL;     //修改记录位置指针
+
+ofstream outfile;       //文件指针
 
 int main()
 {
@@ -690,6 +695,19 @@ int main()
 			{
 				//写入文件相关的功能
 
+				//选择写入表单记录还是仓库物品清单
+				all_temp=Write_record_ku_menu();
+
+				//保存表单记录
+				if (all_temp == 1)
+				{
+					Write_in_file(1);
+				}
+				//保存仓库物品清单
+				else if (all_temp == 2)
+				{
+					Write_in_file(2);
+				}
 
 				//写入完成后
 				all_temp = Fifth_menu();
@@ -961,6 +979,18 @@ int Fifth_menu()
 	return temp;
 }
 
+//显示写入文件模式菜单  表单记录还是仓库物品清单
+int Write_record_ku_menu()
+{
+	cout << "请输入想要存储表单记录还是仓库记录"<<endl;
+	cout << "1.保存表单记录" << endl;
+	cout << "2.保存表单记录" << endl;
+	int temp;
+	cin >> temp;
+	system("cls");
+	return temp;
+}
+
 //显示材料初始化模式菜单      //返回值是选择的菜单值
 int material_base_menu()
 {
@@ -1171,17 +1201,16 @@ void print_ori(struct material* head,int mode)
 
 		if (strcmp(pp->in_out,"入库") == 0)
 		{
-			cout << pp->in_out << " " << pp->seri_number << " " << pp->name << " " << pp->unit_price << " " << pp->in_num << " "
-				<< pp->in_time.year << "年" << pp->in_time.month << "月" << pp->in_time.day << "日"<<" "
-				<< pp->person<<" " << pp->note << endl;
+			cout<< pp->in_out << " "<<setw(15) << pp->seri_number << " "<< setw(15) << pp->name << " "<< setw(15) << pp->unit_price << " "<< setw(15) << pp->in_num << " "
+				<< setw(15) << pp->in_time.year << "年" << setw(15) << pp->in_time.month << "月" << setw(15) << pp->in_time.day << "日"<<" "
+				<< setw(15) << pp->person<<" " << setw(15) << pp->note << endl;
 		}
 
 		if (strcmp(pp->in_out, "出库") == 0)
 		{
-			cout << pp->in_out << " " << pp->seri_number << " " << pp->name << " " << pp->unit_price << " " << pp->out_num << " "
-				<< pp->out_time.year << "年" << pp->out_time.month << "月" << pp->out_time.day << "日"<<" "
-				<< pp->person<<" " << pp->note << endl;
-		
+			cout << setw(15) << pp->in_out << " " << setw(15) << pp->seri_number << " " << setw(15) << pp->name << " " << setw(15) << pp->unit_price << " " << setw(15) << pp->out_num << " "
+				<< setw(15) << pp->out_time.year << "年" << setw(15) << pp->out_time.month << "月" << setw(15) << pp->out_time.day << "日"<<" " << setw(15)
+				<< pp->person<<" " << setw(15) << pp->note << endl;
 		}
 
 		pp = pp->next;
@@ -2585,5 +2614,55 @@ void Change_many_record(enum material_menu link, int mode)
 	if (mode == 3)
 	{
 		print_ori(Search_head,2);
+	}
+}
+
+//写入文件功能  参数说明 mode 1-保存表单记录 2-保存仓库物品清单
+void Write_in_file(int mode)
+{
+	//保存表单记录
+	if (mode == 1)
+	{
+		struct material* pp = base_head->next;  //用于遍历表单记录
+		char address[100];
+		cout << "请输入想要保存的位置: " << endl;
+		cin >> address;
+		outfile.open(address);
+		for (int i = 0; i < sum_record; i++)
+		{
+			if (strcmp(pp->in_out, "入库") == 0)
+			{
+				outfile << pp->in_out<< setw(8) << pp->seri_number<< setw(8) << pp->name<< setw(8) << pp->unit_price<< setw(8) << pp->in_num
+					<< setw(8) << pp->in_time.year << "年"<< pp->in_time.month << "月"<< pp->in_time.day << "日"
+					<< setw(8) << pp->person<< setw(8) << pp->note << endl;
+			}
+
+			if (strcmp(pp->in_out, "出库") == 0)
+			{
+				outfile << pp->in_out << setw(8) << pp->seri_number<< setw(8) << pp->name << setw(8) << pp->unit_price<< setw(8) << pp->out_num 
+					<< setw(8) << pp->out_time.year << "年"<< pp->out_time.month << "月"<< pp->out_time.day << "日"<< setw(8)
+					<< pp->person<< setw(8) << pp->note << endl;
+			}
+			pp = pp->next;
+		}
+
+		outfile.close();
+		cout << "表单记录已经存储到指定位置！" << endl;
+	}
+	//保存仓库物品清单
+	else if (mode == 2)
+	{
+		material* pp = ku_head->next;
+		char address[100];
+		cout << "请输入想要保存的位置: " << endl;
+		cin >> address;
+		outfile.open(address);
+		for (int i = 0; i < sum_item; i++)
+		{		
+			outfile << pp->seri_number <<setw(8)<< pp->name <<setw(8)<< pp->store_num << endl;
+			pp = pp->next;
+		}
+		outfile.close();
+		cout << "仓库物品清单已经存储到指定位置！" << endl;
 	}
 }
