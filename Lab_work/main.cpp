@@ -11,8 +11,9 @@ using namespace std;
 
 /*------------------------Note--------------------------
 读取文本文件时，文本文件的编码格式是ANSI,否则中文会乱码
-
-
+材料的编号是类别（如 金属） 名称是具体的物品（如 铁）
+该系统现在可以在关闭重新打开后继续使用之前的数据
+查询记录的方法采用模糊查找
 
 --------------------------Note--------------------------*/
 
@@ -78,7 +79,8 @@ enum main_menu
 	show_record,   //显示记录
 	search_record, //查询记录
 	change_record, //修改记录
-	write_file	   //写入文件 
+	write_file,	   //写入文件 
+	exit_out       //退出系统
 }main_menu_switch;
 
 
@@ -165,8 +167,9 @@ enum fifth_menu
 //材料库初始化模式菜单
 enum material_Base_init
 {
-	file_in=1,   //文件读入
-	handwrite  //手动输入
+	file_in = 1,   //文件读入
+	handwrite,      //手动输入
+	continue_to_use   //继续使用
 }Base_init;
 
 
@@ -195,7 +198,7 @@ int Write_record_ku_menu();           //显示写入文件模式菜单  表单记录还是仓库物
 //功能函数声明
 
 void Delay(int i);        //延时函数
-
+int Find_in_part(char* search_data, char* now_node, enum material_menu link);   //模糊查询算法  查字符串  查询范围：表单记录、仓库物品
 
 //库相关的函数
 
@@ -250,8 +253,11 @@ int main()
 	//材料库初始化工作
 	sum_record = 0;
 	sum_item = 0;
+	
+	cout << "*******************************************" << endl;
+	cout << "*  用户您好!在使用前需要进行系统初始化!   *" << endl;
+	cout << "*******************************************" << endl << endl;
 
-	cout << "用户您好，在使用前需要进行系统初始化:" << endl;
 	Delay(1500);
 	//建立表单  
 	base_head=Creat_ku();	
@@ -260,7 +266,7 @@ int main()
 	//建立仓库
 	ku_head=Creat_Item_List();
 
-	cout << "表单记录数据初始化更新到空仓库" << endl;
+	cout << "表单记录数据初始化更新到空仓库！" << endl;
 	Handout_ku_init(base_head, ku_head);     //将刚刚建立的表单记录更新到仓库的物品清单中（初始化工作）
 	Delay(1500);
 
@@ -574,7 +580,7 @@ int main()
 							     
 								//函数函数....................................
 								
-								cout << "已找到想要修改的表单记录" << endl;
+								cout << "已找到想要修改的表单记录！！！" << endl;
 
 								//选择要修改的材料属性值	
 								all_temp = Change_record_menu();
@@ -737,6 +743,35 @@ int main()
 
 			}
 		}
+		else if (main_menu_switch == exit_out)
+		{
+			struct material* pp = base_head->next;  //用于遍历表单记录
+			char address[100];
+			strcpy(address, "C:\\Users\\31711\\Desktop\\高级程序设计大作业\\系统历史数据.txt");
+			outfile.open(address);
+			for (int i = 0; i < sum_record; i++)
+			{
+				if (strcmp(pp->in_out, "入库") == 0)
+				{
+					outfile << pp->in_out << setw(8) << pp->seri_number << setw(8) << pp->name << setw(8) << pp->unit_price << setw(8) << pp->in_num
+						<< setw(8) << pp->in_time.year << " " << pp->in_time.month << " " << pp->in_time.day << " "
+						<< setw(8) << pp->person << setw(8) << pp->note << endl;
+				}
+
+				if (strcmp(pp->in_out, "出库") == 0)
+				{
+					outfile << pp->in_out << setw(8) << pp->seri_number << setw(8) << pp->name << setw(8) << pp->unit_price << setw(8) << pp->out_num
+						<< setw(8) << pp->out_time.year << " " << pp->out_time.month << " " << pp->out_time.day << " " << setw(8)
+						<< pp->person << setw(8) << pp->note << endl;
+				}
+				pp = pp->next;
+			}
+			outfile << "ok" << endl;
+			outfile.close();
+			cout << "系统数据已保存" << endl;
+			exit(0);
+		}
+		
 
 	}
 	return 0;
@@ -754,6 +789,7 @@ int Main_menu()
 	cout << "3.查询记录" << endl;
 	cout << "4.修改记录" << endl;
 	cout << "5.写入文件" << endl;
+	cout << "6.退出系统" << endl;
 	cout << "/*--------------------------*/" << endl;
 	cout << "请输入想要执行的功能：" << endl;
 	int temp;
@@ -1014,6 +1050,7 @@ int material_base_menu()
 	cout << "/*---------表单初始化模式菜单------------*/" << endl;
 	cout << "1.文件读入" << endl;
 	cout << "2.手动输入" << endl;
+	cout << "3.继续使用之前数据" << endl;
 	cout << "/*--------------------------*/" << endl;
 	cout << "请输入要选定的表单初始化模式：" << endl;
 	int temp;
@@ -1232,6 +1269,53 @@ struct material* Creat_ku()
 			
 			return head;
 		}
+
+		else if (Base_init == continue_to_use)
+		{
+			char address[100];  //系统历史数据保存位置
+			strcpy(address, "C:\\Users\\31711\\Desktop\\高级程序设计大作业\\系统历史数据.txt");
+			infile.open(address);
+			for (int i = 0;; i++)    //划重点
+			{
+				p1 = (struct material*)malloc(sizeof(material));
+				infile >> p1->in_out;
+				if (strcmp(p1->in_out, "ok") == 0)
+				{
+					system("cls");
+					break;
+				}
+
+				//入库记录
+				if (strcmp(p1->in_out, "入库") == 0)
+				{
+					infile >> p1->seri_number >> p1->name >> p1->unit_price >> p1->in_num >> p1->in_time.year >> p1->in_time.month >> p1->in_time.day >> p1->person >> p1->note;
+				}
+				//出库记录
+				else
+				{
+					infile >> p1->seri_number >> p1->name >> p1->unit_price >> p1->out_num >> p1->out_time.year >> p1->out_time.month >> p1->out_time.day >> p1->person >> p1->note;
+				}
+
+				n++;
+				sum_record++;
+				if (n == 1)
+				{
+					head->next = p1;
+				}
+				else
+				{
+					p2->next = p1;
+				}
+				p2 = p1;
+			}
+			if (sum_record != 0)
+				p2->next = NULL;
+
+			infile.close();
+			cout << "历史数据读入完成！！" << endl;
+
+			return head;
+		}
 	}
 
 	
@@ -1354,7 +1438,8 @@ int Join_record(struct material* now_record, struct material* sec_head,int mode)
 		cangku_head = cangku_head->next;  //遍历仓库中的物品
 
 		//该表单记录是仓库中已有的物品
-		if (strcmp(cangku_head->seri_number,now_record->seri_number) == 0)
+		if (strcmp(cangku_head->seri_number,now_record->seri_number) == 0
+			&& strcmp(cangku_head->name, now_record->name) == 0)
 		{
 			//物品进行入库
 			if (strcmp(now_record->in_out, "入库") == 0)
@@ -1966,6 +2051,7 @@ void Delay(int i)
 //显示相关的表单记录
 void Show_related_record(enum material_menu link)
 {
+	cout << "**一共有" << sum_record << "条表单记录**" << endl << endl;
 	material* pp = base_head;
 	if (link == unit_price)
 	{
@@ -2068,6 +2154,7 @@ void Show_related_record(enum material_menu link)
 //显示仓库物品清单
 void Show_Cangku_Item()
 {
+	cout << "**仓库中一共有" << sum_item << "种物品**" << endl << endl;
 	cout << "编号|名称|现存数量" << endl;
 	material* pp= ku_head;
 	for (int i = 0; i < sum_item; i++)
@@ -2142,7 +2229,7 @@ void Search_related_record(enum material_menu link,int mode)
 			//按照编号进行检索
 			if (link == seri_number)
 			{
-				if (strcmp(search.seri_number, biao_dan->seri_number) == 0)
+				if (Find_in_part(search.seri_number, biao_dan->seri_number,link))
 				{
 					flag = 1;
 				}
@@ -2151,7 +2238,7 @@ void Search_related_record(enum material_menu link,int mode)
 			//按照名称进行检索
 			if (link == name)
 			{
-				if (strcmp(search.name, biao_dan->name) == 0)
+				if (Find_in_part(search.name, biao_dan->name,link))
 				{
 					flag = 1;
 				}
@@ -2186,7 +2273,7 @@ void Search_related_record(enum material_menu link,int mode)
 			//按照保管人进行检索
 			if (link == person)
 			{
-				if (strcmp(search.person, biao_dan->person) == 0)
+				if (Find_in_part(search.person, biao_dan->person,link))
 				{
 					flag = 1;
 				}
@@ -2195,7 +2282,7 @@ void Search_related_record(enum material_menu link,int mode)
 			//按照备注进行检索
 			if (link == note)
 			{
-				if (strcmp(search.note, biao_dan->note) == 0)
+				if (Find_in_part(search.note, biao_dan->note,link))
 				{
 					flag = 1;
 				}
@@ -2423,7 +2510,11 @@ void Search_related_record(enum material_menu link,int mode)
 	if (mode == First_search || mode == Continue_search)
 	{
 		if (Search_head->next == NULL)  cout << "对不起，未找到您想要查询的表单记录" << endl;
-		else print_ori(Search_head, 2);
+		else
+		{
+			cout << "**共查询到" << sum_search << "条表单记录**" << endl << endl;
+			print_ori(Search_head, 2);
+		}
 	}
 
 		//清空检索链表
@@ -2454,6 +2545,7 @@ void Search_ku_item()
 	material* search = (material*)malloc(sizeof(material));
 	material* p1 = NULL, * p2 = NULL;
 
+	enum material_menu link = name;
 	int find_flag = 0;
 
 	cout << "请输入想要查询仓库物品的名称: "<<endl;
@@ -2465,13 +2557,13 @@ void Search_ku_item()
 		
 		temp_head = temp_head->next;
 
-		if (strcmp(temp_head->name, search->name) == 0)
+		if (Find_in_part(search->name, temp_head->name,link))  //之前参数填反了，导致查不到
 		{
 			cout << temp_head->seri_number << " " << temp_head->name << " " << temp_head->store_num << endl;
 			find_flag = 1;
 		}
 	}
-	if (find_flag == 0)  cout << "对不起，仓库中未发现该物品" << endl;;
+	if (find_flag == 0)  cout << "对不起，仓库中未发现该物品" << endl;
 	
 }
 
@@ -2998,3 +3090,76 @@ void Write_in_file(int mode)
 	}
 }
 
+
+//模糊查询算法  查字符串  查询范围：表单记录、仓库物品
+//传参：待查找结点字符串  当前查询链表的结点
+
+int Find_in_part(char* search_data, char* now_node,enum material_menu link)
+{
+	char search[100] = { '\0' };  //存储查找字符串
+	char* s1;    //查找字符串的遍历指针
+	char wait_find[100] = { '\0' };  //存储待查找字符串
+	char* w1;    //查找字符串的遍历指针
+	int size_search = 0;    //查找字符串的长度
+	int size_wait_find = 0;   //待查找字符串的长度
+	int find_num = 0;
+
+
+
+	strcpy(search, search_data);  //查找字符串赋值
+	strcpy(wait_find,now_node);   //待查找字符串赋值
+
+	s1 = search;
+	w1 = wait_find;
+	
+
+	for (int i = 0;; i++)
+	{
+		if (search[i] == '\0')break;
+		else  size_search++;
+	}
+	for (int i = 0;; i++)
+	{
+		if (wait_find[i] == '\0')break;
+		else  size_wait_find++;
+	}
+
+
+	//开始查找
+	if (link == name || link == person)
+	{
+		for (int i = 0; i < size_search; i += 2)
+		{
+			s1 = &search[i];
+			for (int j = 0; j < size_wait_find; j += 2)
+			{
+				w1 = &wait_find[j];
+				if (*s1 == *w1 && *(s1 + 1) == *(w1 + 1))  //汉字占两个字节，所以要两个两个的比较
+				{
+					find_num++;
+				}
+			}
+		}
+		if (find_num == size_search/2)  return 1;
+	}
+
+	else if (link == seri_number || link == note)
+	{
+		for (int i = 0; i < size_search; i ++)
+		{
+			s1 = &search[i];
+			for (int j = 0; j < size_wait_find; j ++)
+			{
+				w1 = &wait_find[j];
+				if (*s1 == *w1)  //字母、汉字占一个字节，所以要单个比较
+				{
+					find_num++;
+				}
+			}
+		}
+		if (find_num == size_search)  return 1;
+
+	}
+
+	return 0;
+}
